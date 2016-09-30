@@ -5,16 +5,34 @@
 
 # NAME
 
-Net::Google::Spreadsheets::V4 - fixme
+Net::Google::Spreadsheets::V4 - Google Sheets API v4 client
 
 # SYNOPSIS
 
     use Net::Google::Spreadsheets::V4;
-    fixme
+    
+    my $gs = Net::Google::Spreadsheets::V4->new(
+        client_id      => "YOUR_CLIENT_ID",
+        client_secret  => "YOUR_CLIENT_SECRET",
+        project_id     => "YOUR_PROJECT_ID",
+        access_token   => "YOUR_ACCESS_TOKEN",
+        refresh_token  => "YOUR_REFRESH_TOKEN",
+    
+        spreadsheet_id => "YOUR_SPREADSHEET_ID",
+    );
+    
+    my ($content, $res) = $gs->request(
+        POST => ':batchUpdate',
+        {
+            requests => [ ... ],
+        },
+    );
+
+See also examples/import.pl for more complex code.
 
 # DESCRIPTION
 
-Net::Google::Spreadsheets::V4 is fixme
+Net::Google::Spreadsheets::V4 is Google Sheets API v4 client
 
 # METHODS
 
@@ -26,23 +44,26 @@ Creates and returns a new Net::Google::Spreadsheets::V4 client instance. Dies on
 
 %args is following:
 
-- hostname => Str ("127.0.0.1")
+- client\_id => Str
+- client\_secret => Str
+- project\_id => Str
+- access\_token => Str
+- refresh\_token => Str
+- spreadsheet\_id => Str
 
 ## Instance Methods
 
-### **method\_name**($message:Str) :Bool
+### **get\_sheet**(title|index|sheet\_id => Str) :HashRef
 
-# ENVIRONMENT VARIABLES
+Get `Sheet` object by title or index or sheet\_id.
 
-- HOME
+### **clear\_sheet**(sheet\_id => Str)
 
-    Used to determine the user's home directory.
+Delete all data.
 
-# FILES
+### **to\_csv**(Array)
 
-- `/path/to/config.ph`
-
-    設定ファイル。
+Convert Arrayto CSV Str.
 
 # AUTHOR
 
@@ -58,8 +79,7 @@ patches and collaborators are welcome.
 
 # SEE ALSO
 
-[Module::Hoge](https://metacpan.org/pod/Module::Hoge),
-ls(1), cd(1)
+[https://developers.google.com/sheets/](https://developers.google.com/sheets/)
 
 # COPYRIGHT
 

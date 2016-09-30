@@ -2,39 +2,209 @@ package Net::Google::Spreadsheets::V4;
 
 use strict;
 use warnings;
-use 5.008_005;
+use 5.010_000;
 use utf8;
 
 our $VERSION = '0.001';
 
 use Class::Accessor::Lite (
     new => 0,
-    rw  => [qw(name)],
-    ro  => [qw(id)],
-    wo  => [qw()],
+    ro  => [qw(ua csv spreadsheet_id endpoint)],
 );
-# or
-# use Class::Accessor::Lite;
-# Class::Accessor::Lite->mk_accessors(qw(name));
-# Class::Accessor::Lite->mk_ro_accessors(qw(id));
 
 use Data::Validator;
-use Log::Minimal;
+use Log::Minimal env_debug => 'NGS4_DEBUG';
 use Carp;
+use Net::Google::DataAPI::Auth::OAuth2;
+use Net::OAuth2::AccessToken;
+use Text::CSV;
+use Furl;
+use JSON;
+use Sub::Retry;
 
 sub new {
-    my($class, $args) = Data::Validator->new(
-        id   => { isa => 'Int', default  => 'foo' },
-        name => { isa => 'Str', optional => 1 },
-    )->with('Method')->validate(@_);
+    state $rule = Data::Validator->new(
+        client_id      => { isa => 'Str' },
+        client_secret  => { isa => 'Str' },
+        project_id     => { isa => 'Str' },
+        access_token   => { isa => 'Str' },
+        refresh_token  => { isa => 'Str' },
+
+        spreadsheet_id => { isa => 'Str' },
+        timeout        => { isa => 'Int', default => 120 },
+    )->with('Method');
+    my($class, $args) = $rule->validate(@_);
 
     my $self = bless {
-        id   => 0,
-        name => 'no name',
-        %$args
+        %$args,
+        ua       => undef,
+        csv      => Text::CSV->new({ binary => 1}),
+        endpoint => 'https://sheets.googleapis.com/v4/spreadsheets/'.$args->{spreadsheet_id},
     }, $class;
-    Carp::croak("missing mandatory args: id") unless $self->{id};
+
+    $self->_initialize;
+
     return $self;
+}
+
+sub _initialize {
+    my($self) = @_;
+
+    my $account = {
+        auth_provider_x509_cert_url => 'https://www.googleapis.com/oauth2/v1/certs',
+        auth_uri      => 'https://accounts.google.com/o/oauth2/auth',
+        redirect_uris => [
+            'urn:ietf:wg:oauth:2.0:oob',
+            'http://localhost'
+        ],
+        token_uri     => 'https://accounts.google.com/o/oauth2/token',
+    };
+
+    for my $f (qw(client_id client_secret project_id access_token refresh_token)) {
+        $account->{$f} = $self->{$f};
+    }
+
+    my $oauth2 = Net::Google::DataAPI::Auth::OAuth2->new(
+        client_id     => $account->{client_id},
+        client_secret => $account->{client_secret},
+        scope => [qw(
+                    https://www.googleapis.com/auth/drive
+                    https://www.googleapis.com/auth/drive.readonly
+                    https://www.googleapis.com/auth/spreadsheets
+                    https://www.googleapis.com/auth/spreadsheets.readonly
+                )],
+    );
+
+    my $ow = $oauth2->oauth2_webserver;
+    my $token = Net::OAuth2::AccessToken->new(
+        profile       => $ow,
+        auto_refresh  => 1,
+        refresh_token => $account->{refresh_token},
+    );
+    $ow->update_access_token($token);
+    $token->refresh;
+    $oauth2->access_token($token);
+
+    $self->{ua} = Furl->new(
+        headers => [ 'Authorization' => sprintf('Bearer %s', $token->access_token) ],
+        timeout => $self->{timeout},
+    );
+}
+
+sub request {
+    my($self, $method, $url, $content, $opt) = @_;
+
+    $opt = {
+        retry_times    => 3,
+        retry_interval => 1.0,
+        %{ $opt // {} },
+    };
+
+    $url = $self->endpoint . $url;
+
+    debugf("request: %s => %s %s %s", $method, $url, ddf($content//'{no content}'), ddf($opt//'no opt'));
+
+    my $headers = [];
+    if ($content) {
+        push @$headers, 'Content-Type' => 'application/json';
+    }
+    if ($opt->{headers}) {
+        push @$headers, @{ $opt->{headers} };
+    }
+
+    my $res = retry $opt->{retry_times}, $opt->{retry_interval}, sub {
+        $self->ua->request(
+            method  => $method,
+            url     => $url,
+            headers => $headers,
+            $content ? (content => encode_json($content)) : (),
+        );
+    }, sub {
+        my $res = shift;
+        if (!$res) {
+            warnf "not HTTP::Response: $@";
+            return 1;
+        } elsif ($res->status_line =~ /^500\s+Internal Response/
+                     or $res->code =~ /^50[234]$/
+                 ) {
+            warnf 'retrying: %s', $res->status_line;
+            return 1; # do retry
+        } else {
+            return;
+        }
+    };
+
+    if (!$res) {
+        critf 'failure %s %s %s', $method, $url, ddf($content//'{no content}');
+        return;
+    } else {
+        if ($res->is_success) {
+            my $res_content = $res->decoded_content ? decode_json($res->decoded_content) : 1;
+            return wantarray ? ($res_content, $res) : $res_content;
+        } else {
+            critf 'failure %s %s %s: %s', $method, $url, ddf($content//'{no content}'), $res->status_line;
+            return wantarray ? ('', $res) : '';
+        }
+    }
+}
+
+sub get_sheet {
+    state $rule = Data::Validator->new(
+        title    => { isa => 'Str', xor => [qw(index sheet_id)] },
+        index    => { isa => 'Str', xor => [qw(title sheet_id)] },
+        sheet_id => { isa => 'Str', xor => [qw(title index )] },
+    )->with('Method');
+    my($self, $args) = $rule->validate(@_);
+
+    my($pkey, $akey);
+    for my $key (qw(title index sheet_id)) {
+        next unless exists $args->{$key};
+        $akey = $key;
+        $pkey = {
+            sheet_id => 'sheetId',
+        }->{$key} // $key;
+    }
+
+    my($content, $res) = $self->request(GET => '');
+    for my $sheet (@{ $content->{sheets} }) {
+        if ($sheet->{properties}{$pkey} eq $args->{$akey}) {
+            return $sheet;
+        }
+    }
+
+    return;
+}
+
+sub clear_sheet {
+    state $rule = Data::Validator->new(
+        sheet_id => { isa => 'Str' },
+    )->with('Method');
+    my($self, $args) = $rule->validate(@_);
+
+    return $self->request(
+        POST => ':batchUpdate',
+        {
+            requests => [
+                {
+                    repeatCell => {
+                        range => {
+                            sheetId => $args->{sheet_id},
+                        },
+                        cell => {
+                        },
+                        fields => '*',
+                    },
+                },
+            ],
+        },
+    );
+}
+
+sub to_csv {
+    my $self = shift;
+
+    my $status = $self->csv->combine(@_);
+    return $status ? $self->csv->string() : ();
 }
 
 1;
@@ -52,7 +222,7 @@ __END__
 
 =head1 NAME
 
-Net::Google::Spreadsheets::V4 - fixme
+Net::Google::Spreadsheets::V4 - Google Sheets API v4 client
 
 =begin readme
 
@@ -70,11 +240,29 @@ To install this module, run the following commands:
 =head1 SYNOPSIS
 
     use Net::Google::Spreadsheets::V4;
-    fixme
+    
+    my $gs = Net::Google::Spreadsheets::V4->new(
+        client_id      => "YOUR_CLIENT_ID",
+        client_secret  => "YOUR_CLIENT_SECRET",
+        project_id     => "YOUR_PROJECT_ID",
+        access_token   => "YOUR_ACCESS_TOKEN",
+        refresh_token  => "YOUR_REFRESH_TOKEN",
+    
+        spreadsheet_id => "YOUR_SPREADSHEET_ID",
+    );
+    
+    my ($content, $res) = $gs->request(
+        POST => ':batchUpdate',
+        {
+            requests => [ ... ],
+        },
+    );
+
+See also examples/import.pl for more complex code.
 
 =head1 DESCRIPTION
 
-Net::Google::Spreadsheets::V4 is fixme
+Net::Google::Spreadsheets::V4 is Google Sheets API v4 client
 
 =head1 METHODS
 
@@ -88,33 +276,33 @@ Creates and returns a new Net::Google::Spreadsheets::V4 client instance. Dies on
 
 =over 4
 
-=item hostname => Str ("127.0.0.1")
+=item client_id => Str
+
+=item client_secret => Str
+
+=item project_id => Str
+
+=item access_token => Str
+
+=item refresh_token => Str
+
+=item spreadsheet_id => Str
 
 =back
 
 =head2 Instance Methods
 
-=head3 B<method_name>($message:Str) :Bool
+=head3 B<get_sheet>(title|index|sheet_id => Str) :HashRef
 
-=head1 ENVIRONMENT VARIABLES
+Get C<Sheet> object by title or index or sheet_id.
 
-=over 4
+=head3 B<clear_sheet>(sheet_id => Str)
 
-=item HOME
+Delete all data.
 
-Used to determine the user's home directory.
+=head3 B<to_csv>(Array)
 
-=back
-
-=head1 FILES
-
-=over 4
-
-=item F</path/to/config.ph>
-
-設定ファイル。
-
-=back
+Convert Arrayto CSV Str.
 
 =head1 AUTHOR
 
@@ -130,8 +318,7 @@ patches and collaborators are welcome.
 
 =head1 SEE ALSO
 
-L<Module::Hoge|Module::Hoge>,
-ls(1), cd(1)
+L<https://developers.google.com/sheets/>
 
 =head1 COPYRIGHT
 

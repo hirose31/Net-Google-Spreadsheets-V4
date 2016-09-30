@@ -1,5 +1,5 @@
 {
-   "abstract" : "fixme",
+   "abstract" : "Google Sheets API v4 client",
    "author" : [
       "HIROSE Masaaki <hirose31@gmail.com>"
    ],
@@ -41,7 +41,17 @@
       },
       "runtime" : {
          "requires" : {
-            "perl" : "5.008005"
+            "Carp" : "0",
+            "Class::Accessor::Lite" : "0",
+            "Data::Validator" : "0",
+            "Furl" : "0",
+            "JSON" : "0",
+            "Log::Minimal" : "0",
+            "Net::Google::DataAPI::Auth::OAuth2" : "0",
+            "Net::OAuth2::AccessToken" : "0",
+            "Sub::Retry" : "0",
+            "Text::CSV" : "0",
+            "perl" : "5.010000"
          }
       },
       "test" : {
@@ -51,6 +61,17 @@
       }
    },
    "release_status" : "stable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/hirose31/Net-Google-Spreadsheets-V4/issues"
+      },
+      "homepage" : "https://github.com/hirose31/Net-Google-Spreadsheets-V4",
+      "repository" : {
+         "type" : "git",
+         "url" : "https://github.com/hirose31/Net-Google-Spreadsheets-V4.git",
+         "web" : "https://github.com/hirose31/Net-Google-Spreadsheets-V4"
+      }
+   },
    "version" : "0.001"
 }
 
