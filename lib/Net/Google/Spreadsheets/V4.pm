@@ -200,6 +200,39 @@ sub clear_sheet {
     );
 }
 
+# https://developers.google.com/sheets/guides/concepts#a1_notation
+sub a1_notaion {
+    state $rule =  Data::Validator->new(
+        sheet_title  => { isa => 'Str' },
+        start_column => { isa => 'Int', default => 1 },
+        end_column   => { isa => 'Int' },
+        start_row    => { isa => 'Int', default => 1 },
+        end_row      => { isa => 'Int' },
+    )->with('Method');
+    my($self, $args) = $rule->validate(@_);
+
+    return sprintf('%s!%s%d:%s%d',
+                   $args->{sheet_title},
+                   $self->column_notation($args->{start_column}),
+                   $args->{start_row},
+                   $self->column_notation($args->{end_column}),
+                   $args->{end_row},
+               );
+}
+
+sub column_notation {
+    my($self, $n) = @_;
+
+    my $l = int($n / 27);
+    my $r = $n - $l * 26;
+
+    if ($l > 0) {
+        return pack 'CC', $l+64, $r+64;
+    } else {
+        return pack 'C', $r+64;
+    }
+}
+
 sub to_csv {
     my $self = shift;
 
