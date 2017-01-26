@@ -14,8 +14,6 @@ Net::Google::Spreadsheets::V4 - Google Sheets API v4 client
     my $gs = Net::Google::Spreadsheets::V4->new(
         client_id      => "YOUR_CLIENT_ID",
         client_secret  => "YOUR_CLIENT_SECRET",
-        project_id     => "YOUR_PROJECT_ID",
-        access_token   => "YOUR_ACCESS_TOKEN",
         refresh_token  => "YOUR_REFRESH_TOKEN",
     
         spreadsheet_id => "YOUR_SPREADSHEET_ID",
@@ -46,8 +44,6 @@ Creates and returns a new Net::Google::Spreadsheets::V4 client instance. Dies on
 
 - client\_id => Str
 - client\_secret => Str
-- project\_id => Str
-- access\_token => Str
 - refresh\_token => Str
 - spreadsheet\_id => Str
 

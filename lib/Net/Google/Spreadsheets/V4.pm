@@ -26,13 +26,11 @@ sub new {
     state $rule = Data::Validator->new(
         client_id      => { isa => 'Str' },
         client_secret  => { isa => 'Str' },
-        project_id     => { isa => 'Str' },
-        access_token   => { isa => 'Str' },
         refresh_token  => { isa => 'Str' },
 
         spreadsheet_id => { isa => 'Str' },
         timeout        => { isa => 'Int', default => 120 },
-    )->with('Method');
+    )->with('Method','AllowExtra');
     my($class, $args) = $rule->validate(@_);
 
     my $self = bless {
@@ -60,7 +58,7 @@ sub _initialize {
         token_uri     => 'https://accounts.google.com/o/oauth2/token',
     };
 
-    for my $f (qw(client_id client_secret project_id access_token refresh_token)) {
+    for my $f (qw(client_id client_secret refresh_token)) {
         $account->{$f} = $self->{$f};
     }
 
@@ -277,8 +275,6 @@ To install this module, run the following commands:
     my $gs = Net::Google::Spreadsheets::V4->new(
         client_id      => "YOUR_CLIENT_ID",
         client_secret  => "YOUR_CLIENT_SECRET",
-        project_id     => "YOUR_PROJECT_ID",
-        access_token   => "YOUR_ACCESS_TOKEN",
         refresh_token  => "YOUR_REFRESH_TOKEN",
     
         spreadsheet_id => "YOUR_SPREADSHEET_ID",
@@ -312,10 +308,6 @@ Creates and returns a new Net::Google::Spreadsheets::V4 client instance. Dies on
 =item client_id => Str
 
 =item client_secret => Str
-
-=item project_id => Str
-
-=item access_token => Str
 
 =item refresh_token => Str
 

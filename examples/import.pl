@@ -14,8 +14,6 @@ use Net::Google::Spreadsheets::V4;
 my $gs = Net::Google::Spreadsheets::V4->new(
     client_id      => "YOUR_CLIENT_ID",
     client_secret  => "YOUR_CLIENT_SECRET",
-    project_id     => "YOUR_PROJECT_ID",
-    access_token   => "YOUR_ACCESS_TOKEN",
     refresh_token  => "YOUR_REFRESH_TOKEN",
 
     spreadsheet_id => "YOUR_SPREADSHEET_ID",
