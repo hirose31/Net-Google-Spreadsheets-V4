@@ -32,6 +32,7 @@
       "develop" : {
          "requires" : {
             "App::scan_prereqs_cpanfile" : "0.09",
+            "Config::Pit" : "0",
             "Dist::Milla" : "v1.0.15",
             "Pod::Wordlist" : "0",
             "Test::Fixme" : "0",
