@@ -23,6 +23,7 @@ on develop => sub {
     requires 'Test::Fixme';
     requires 'Test::Spelling', '0.12';
     requires 'Test::Kwalitee', '1.23';
+    requires 'Test::Kwalitee::Extra';
     requires 'Test::More', '0.96';
     requires 'Test::Pod', '1.41';
     requires 'Test::Vars';

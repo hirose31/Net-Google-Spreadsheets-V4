@@ -12,7 +12,9 @@ use warnings;
 
 use Test::More;
 
-use Config::Pit;
+eval { require Config::Pit; Config::Pit->import(); };
+plan(skip_all => "Config::Pit not installed: $@; skipping") if $@;
+
 my $credential = pit_get('google-oauth2');
 my $spreadsheet_id = '1h_XP86fHrviYJ_TYNRGzpmEghFPcrTvGHMFNGa1tKKk';
 

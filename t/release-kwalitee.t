@@ -10,7 +10,8 @@ BEGIN {
 use strict;
 use warnings;
 use Test::More 0.88;
-use Test::Kwalitee 1.21 'kwalitee_ok';
+eval { require Test::Kwalitee; Test::Kwalitee->VERSION(1.21); Test::Kwalitee->import(qw(kwalitee_ok)); };
+plan(skip_all => "Test::Kwalitee not installed: $@; skipping") if $@;
 
 kwalitee_ok();
 
