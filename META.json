@@ -68,7 +68,7 @@
    "provides" : {
       "Net::Google::Spreadsheets::V4" : {
          "file" : "lib/Net/Google/Spreadsheets/V4.pm",
-         "version" : "0.001"
+         "version" : "0.002"
       }
    },
    "release_status" : "stable",
@@ -83,6 +83,6 @@
          "web" : "https://github.com/hirose31/Net-Google-Spreadsheets-V4"
       }
    },
-   "version" : "0.001"
+   "version" : "0.002"
 }
 
