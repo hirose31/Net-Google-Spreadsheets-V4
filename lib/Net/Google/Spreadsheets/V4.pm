@@ -163,7 +163,7 @@ sub get_sheet {
         }->{$key} // $key;
     }
 
-    my($content, $res) = $self->request(GET => '');
+    my($content) = $self->request(GET => '');
     for my $sheet (@{ $content->{sheets} }) {
         if ($sheet->{properties}{$pkey} eq $args->{$akey}) {
             return $sheet;
