@@ -26,6 +26,7 @@ on develop => sub {
     requires 'Test::More', '0.96';
     requires 'Test::Pod', '1.41';
     requires 'Test::Vars';
+    requires 'Config::Pit';
 };
 
 on test => sub {
