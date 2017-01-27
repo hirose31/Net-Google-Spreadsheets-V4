@@ -24,3 +24,5 @@ hirose31
 lib
 Foo
 Bar
+CSV
+Str

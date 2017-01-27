@@ -327,7 +327,7 @@ Delete all data.
 
 =head3 B<to_csv>(Array)
 
-Convert Arrayto CSV Str.
+Convert Array to CSV Str.
 
 =head1 AUTHOR
 

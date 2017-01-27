@@ -59,7 +59,7 @@ Delete all data.
 
 ### **to\_csv**(Array)
 
-Convert Arrayto CSV Str.
+Convert Array to CSV Str.
 
 # AUTHOR
 
