@@ -199,7 +199,7 @@ sub clear_sheet {
 }
 
 # https://developers.google.com/sheets/guides/concepts#a1_notation
-sub a1_notaion {
+sub a1_notation {
     state $rule =  Data::Validator->new(
         sheet_title  => { isa => 'Str' },
         start_column => { isa => 'Int', default => 1 },
