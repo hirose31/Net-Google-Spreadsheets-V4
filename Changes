@@ -1,6 +1,8 @@
 Revision history for Net-Google-Spreadsheets-V4
 
 {{$NEXT}}
+    [IMPROVEMENTS]
+        - Revise a1_notation and add example/read.pl
 
 0.002     2017-01-27 11:43:18+00:00 UTC
     [TRIVIAL]

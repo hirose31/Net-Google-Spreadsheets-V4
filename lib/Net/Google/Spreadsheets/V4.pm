@@ -5,7 +5,7 @@ use warnings;
 use 5.010_000;
 use utf8;
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 use Class::Accessor::Lite (
     new => 0,
